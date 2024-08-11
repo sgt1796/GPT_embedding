@@ -32,8 +32,11 @@ def find_kNN(
     return strings[:top_n], relatednesses[:top_n]
 
 #str_to_search = "what pizza flavor do people like the most?"
-str_to_search = "what should I buy for my daughter for her 9th birthday gift?"
+str_to_search = "What can I do with my digesting problem?"
 strings, relatednesses = find_kNN(str_to_search, df, top_n=5)
+print('='*(len(str_to_search)+13))
+print(f"|| QUERY: {str_to_search} ||")
+print('='*(len(str_to_search)+13))
 print("\nSearch result:")
 print('-'*50)
 for i, (string, relatedness) in enumerate(zip(strings, relatednesses), start=1):
