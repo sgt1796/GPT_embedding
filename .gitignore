@@ -159,6 +159,10 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 Reviews.csv
+Reviews_5k.csv
+Reviews_20k.csv
+
+embeddings_5k.csv
 database.sqlite
 parallel_embeddings.csv
 Amazon_Fine_Food_Reviews.zip
