@@ -8,7 +8,7 @@ load_dotenv()
 EMBEDDING_MODEL = "text-embedding-3-small"
 client = OpenAI()
 
-df = pd.read_csv("embeddings_5k.csv")
+df = pd.read_csv("GBD_2018_20k_embedding.csv")
 df["embedding"] = df.embedding.apply(eval).apply(np.array, dtype="f")
 # search function
 def find_kNN(
@@ -32,7 +32,8 @@ def find_kNN(
     return strings[:top_n], relatednesses[:top_n]
 
 #str_to_search = "what pizza flavor do people like the most?"
-str_to_search = "What can I do with my digesting problem?"
+str_to_search = "Show me the french >70 aged people, with breast cancer"
+
 strings, relatednesses = find_kNN(str_to_search, df, top_n=5)
 print('='*(len(str_to_search)+13))
 print(f"|| QUERY: {str_to_search} ||")
