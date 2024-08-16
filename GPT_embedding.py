@@ -9,6 +9,7 @@ from openai import OpenAI, RateLimitError
 import multiprocessing
 from dotenv import load_dotenv
 from numpy import sqrt
+from sys import exit
 
 load_dotenv()
 EMBEDDING_MODEL = "text-embedding-3-small"
@@ -78,13 +79,14 @@ def retry_failed_requests(lst):
 
     return retry_embeddings
 
-def main(input_file, output_file, out_format, columns, rows, minimize, chunk_size=None):
+def main(input_file, output_file, out_format, columns, minimize, chunk_size=None, process=None):
     global counter, nchunks, current_file_chunk
     if chunk_size == None:
         print("--chunk_size is not specified, loading whole file into memory...")
     else:
         print(f"--chunk_size is set to {chunk_size}, loading the first chunk...")
-
+    if process == None:
+        process = multiprocessing.cpu_count()
     # Detect file type based on input file suffix
     if input_file.endswith('.csv'):
         chunk_iter = pd.read_csv(input_file, usecols=columns, chunksize=chunk_size)
@@ -106,9 +108,6 @@ def main(input_file, output_file, out_format, columns, rows, minimize, chunk_siz
         chunk_df = chunk_df.dropna(subset=columns)
         print("combining text from columns...")
         chunk_df.loc[:, 'combined'] = chunk_df.apply(lambda x: '|'.join(f"{col}: {str(x[col]).strip()}" for col in columns if pd.notna(x[col])), axis=1)
-        # Limit rows if specified
-        if rows:
-            chunk_df = chunk_df.iloc[:rows[0]]
 
         ## separator df into smaller list of lists of strings, for each worker to handle
         nrow = chunk_df.shape[0]
@@ -124,7 +123,7 @@ def main(input_file, output_file, out_format, columns, rows, minimize, chunk_siz
         counter = multiprocessing.Value('i', 0)
         nchunks = multiprocessing.Value('i', len(lst))
 
-        with multiprocessing.Pool(initializer=init, initargs=(counter, nchunks)) as pool:
+        with multiprocessing.Pool(process, initializer=init, initargs=(counter, nchunks)) as pool:
             print(f"\nPooling start, {pool._processes} processes launched.\n")
             results = pool.starmap(process_chunk, [(i, chunk) for i, chunk in enumerate(lst)])
             embeddings = []
@@ -165,14 +164,19 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output_file', type=str, required=True, help="Path to the output file.")
     parser.add_argument('--out_format', type=str, choices=['csv', 'tsv'], default='csv', help="Output format: 'csv' or 'tsv' (default: csv).")
     parser.add_argument('-c', '--columns', type=str, nargs='+', help="Column names to combine.")
-    parser.add_argument('-r', '--rows', type=int, nargs='+', help="Specific rows to process (optional). If chunksize is set, only the first n rows of each chunk will be loaded.")
     parser.add_argument('--chunk_size', type=int, help="Number of rows to load into memory at a time. By default whole file will be load into the memory.")
     parser.add_argument('--minimize', action='store_true', help="Minimize output to only the combined and embedding columns.")
+    parser.add_argument('--process', type=int, help="Number of processes to call. Default will be 1 process per vCPU.")
 
     args = parser.parse_args()
 
     start_time = time.time()
-    main(args.input_file, args.output_file, args.out_format, args.columns, args.rows, args.minimize, args.chunk_size)
+    try:
+        main(args.input_file, args.output_file, args.out_format, args.columns, args.minimize, args.chunk_size, args.process)
+    except Exception as e:
+        logging.error(f"Error while running: {e}")
+        exit(1)
+
     print(f"--- Processing completed in {(time.time() - start_time)} seconds ---")
 
 
