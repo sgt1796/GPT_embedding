@@ -49,6 +49,7 @@ def retry_failed_requests(lst):
 
     retry_embeddings = {}
     for line in failed_requests:
+        chunk_text, chunk_index_str, chunk_index_str = None
         try:
             parts = line.strip().split('|')
             chunk_info = parts[0].strip().split(',')
@@ -104,6 +105,9 @@ def main(input_file, output_file, out_format, columns, minimize, chunk_size=None
     current_file_chunk = 1
     print("Start processing...")
     for chunk_df in chunk_iter:
+        # Clear retry log file before processing each chunk
+        open('retry.log', 'w').close()
+        
         print(f"===== processing file chunk {current_file_chunk}... =====\n")
         chunk_df = chunk_df.dropna(subset=columns)
         print("combining text from columns...")
@@ -124,7 +128,7 @@ def main(input_file, output_file, out_format, columns, minimize, chunk_size=None
         nchunks = multiprocessing.Value('i', len(lst))
 
         with multiprocessing.Pool(process, initializer=init, initargs=(counter, nchunks)) as pool:
-            print(f"\nPooling start, {pool._processes} processes launched.\n")
+            print(f"\nPooling start, {pool._processes} processes launched.\n", flush=True)
             results = pool.starmap(process_chunk, [(i, chunk) for i, chunk in enumerate(lst)])
             embeddings = []
             for result in results:
