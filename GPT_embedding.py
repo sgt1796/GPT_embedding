@@ -186,3 +186,5 @@ if __name__ == '__main__':
 
 # test code
 # python GPT_embedding.py -i Reviews.csv -o test_1k.txt --out_format tsv -c Summary Text
+# run on server
+# nohup python3 GPT_embedding/GPT_embedding.py -i Reviews.csv -o /disk3/GPT_embedding_output/Reviews_embedding.csv --out_format csv -c Summary Text --chunk_size 10000 --process 12 > process.log 2>&1 &
