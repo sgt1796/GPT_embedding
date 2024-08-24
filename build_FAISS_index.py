@@ -16,6 +16,10 @@ nsubvec = 96
 assert dimension % nsubvec == 0
 nbits = 8 # data will be clustered to 2^n centroids
 
+## When data is too large for mem to cluster all at once
+## needs a way to "fairly" draw samples to represent the whole data
+## A way to do this is via reservior sampling
+
 # This code is taken from: https://gist.github.com/mdouze/92c5bafcf2b91356cf5e799e3889a0e9
 def reservoir_sampling(src, nsample, temp_fac=1.5, rs=None): 
     """

@@ -1,6 +1,4 @@
-import pandas as pd
 import numpy as np
-from scipy.spatial.distance import cosine, euclidean, cityblock
 from openai import OpenAI
 from dotenv import load_dotenv
 import faiss
@@ -27,13 +25,16 @@ def faiss_search(
 
     D, I = index.search(np.array([query_embedding], dtype='f'), top_n)
     print(I)
-    print(D)
+    # print(D)
     related_text = []
     for idx, err in zip(I[0], D[0]):
         #print(idx)
         #print(err)
         # print(linecache.getline("embedding_data/Reviews_embedding.csv", idx)[:150])
-        related_text.append((linecache.getline("embedding_data/Reviews_embedding.csv", idx)[:350], err))
+        if idx <= 5000:
+            related_text.append((linecache.getline("embedding_data/embeddings_5k.csv", idx)[:350], err))
+    if len(related_text) == 0:
+        related_text.append(("No result find in the first 5000 rows.", -1))
 
     related_text.sort(key=lambda x: x[1], reverse=True)
     strings, relatednesses = zip(*related_text)
