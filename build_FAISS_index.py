@@ -84,23 +84,13 @@ print("sample clustering complete!")
 # reload iterator
 df_iter = pd.read_csv(file_path, chunksize=chunk_size)
 
-first = True
 for df in df_iter:
     df["embedding"] = df.embedding.apply(eval).tolist()
-    if first:
-        test_data = np.array([df.embedding[1997]], dtype='f')
-        first = False
 
     # index.train(np.array(df.embedding.tolist(), dtype="f"))
     index.add(np.array(df.embedding.tolist(), dtype="f"))
     print(f"{index.ntotal} vector has been processed!")
 
 print(f"\nTotal {index.ntotal} processed.")
-# input is a single vector
-k = 2
-D, I = index.search(test_data, k)
 
-print(f"searching for vec: {test_data}")
-print(f"result: {I[0]}")
-print(f"error: {D[0]}")
 faiss.write_index(index, "IVFPQ_index.bin")

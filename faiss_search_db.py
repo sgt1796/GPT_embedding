@@ -69,7 +69,7 @@ def faiss_search(
     return strings[:top_n], relatednesses[:top_n]
 
 
-str_to_search = "what toys are more favored by boys then girls?"
+str_to_search = "I want to prepare for the thanks-giving dinner. What dishes should I make?"
 strings, relatednesses = faiss_search(str_to_search, con, top_n=5)
 con.close()
 
