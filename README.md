@@ -157,7 +157,7 @@ ps aux | grep GPT_embedding.py
 ps aux | grep GPT_embedding.py | grep -v grep | awk '{print $2}' | xargs kill
 ```
 
-You can occasionally check the progress by check the tail of `process.log`
+You can occasionally check the progress by checking the tail of `process.log`
 ```
 tail -n 50 process.log
 ```

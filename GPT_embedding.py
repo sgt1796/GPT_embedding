@@ -12,19 +12,20 @@ from numpy import sqrt
 from sys import exit
 
 load_dotenv()
-EMBEDDING_MODEL = "text-embedding-3-small"
 client = OpenAI()
 
 logging.basicConfig(filename='retry.log', level=logging.ERROR)
 logging.getLogger('backoff').setLevel(logging.ERROR)
+open('retry.log', 'w').close()
 
 
-def init(count, chunks):
-    global counter, nchunks
+def init(count, chunks, embedding_model):
+    global counter, nchunks, EMBEDDING_MODEL
     counter, nchunks = count, chunks
+    EMBEDDING_MODEL = embedding_model
 
 @backoff.on_exception(backoff.expo, RateLimitError, max_time=30)
-def get_embedding(text):
+def _get_embedding(text):
     text = text.replace("\n", " ")
     return client.embeddings.create(input=[text], model=EMBEDDING_MODEL).data[0].embedding
 
@@ -32,7 +33,7 @@ def process_chunk(chunk_index, chunk):
     embeddings = []
     for index, text in enumerate(chunk):
         try:
-            embedding = get_embedding(text)
+            embedding = _get_embedding(text)
             embeddings.append(embedding)
         except Exception as e:
             logging.error(f"Chunk {chunk_index}, Text Index {index}: {text[:50]}... | Error: {e}")
@@ -60,7 +61,7 @@ def retry_failed_requests(lst):
                 chunk_index = int(chunk_index_str)
                 text_index = int(text_index_str)
                 chunk_text = lst[chunk_index][text_index]
-                embedding = get_embedding(chunk_text)
+                embedding = _get_embedding(chunk_text)
 
                 if chunk_index not in retry_embeddings:
                     retry_embeddings[chunk_index] = [None] * len(lst[chunk_index])
@@ -80,7 +81,17 @@ def retry_failed_requests(lst):
 
     return retry_embeddings
 
-def main(input_file, output_file, out_format, columns, minimize, chunk_size=None, process=None):
+def main(args):
+    input_file = args.input_file
+    output_file = args.output_file
+    out_format = args.out_format
+    columns = args.columns
+    minimize = args.minimize
+    embedding_model = args.EMBEDDING_MODEL
+    chunk_size = args.chunk_size
+    process = args.process
+    
+
     global counter, nchunks, current_file_chunk
     if chunk_size == None:
         print("--chunk_size is not specified, loading whole file into memory...")
@@ -104,6 +115,7 @@ def main(input_file, output_file, out_format, columns, minimize, chunk_size=None
     first_chunk = True
     current_file_chunk = 1
     print("Start processing...")
+    print(f"EMBEDDING_MODEL: {embedding_model}")
     for chunk_df in chunk_iter:
         # Clear retry log file before processing each chunk
         open('retry.log', 'w').close()
@@ -127,7 +139,7 @@ def main(input_file, output_file, out_format, columns, minimize, chunk_size=None
         counter = multiprocessing.Value('i', 0)
         nchunks = multiprocessing.Value('i', len(lst))
 
-        with multiprocessing.Pool(process, initializer=init, initargs=(counter, nchunks)) as pool:
+        with multiprocessing.Pool(process, initializer=init, initargs=(counter, nchunks, embedding_model)) as pool:
             print(f"\nPooling start, {pool._processes} processes launched.\n", flush=True)
             results = pool.starmap(process_chunk, [(i, chunk) for i, chunk in enumerate(lst)])
             embeddings = []
@@ -171,12 +183,13 @@ if __name__ == '__main__':
     parser.add_argument('--chunk_size', type=int, help="Number of rows to load into memory at a time. By default whole file will be load into the memory.")
     parser.add_argument('--minimize', action='store_true', help="Minimize output to only the combined and embedding columns.")
     parser.add_argument('--process', type=int, help="Number of processes to call. Default will be 1 process per vCPU.")
+    parser.add_argument('--EMBEDDING_MODEL', type=str, default='text-embedding-3-small', help='OpenAI embedding model (default: text-embedding-3-small)')
 
     args = parser.parse_args()
 
     start_time = time.time()
     try:
-        main(args.input_file, args.output_file, args.out_format, args.columns, args.minimize, args.chunk_size, args.process)
+        main(args)
     except Exception as e:
         logging.error(f"Error while running: {e}")
         exit(1)
