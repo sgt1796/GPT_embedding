@@ -10,21 +10,20 @@ import multiprocessing
 from dotenv import load_dotenv
 from numpy import sqrt
 from sys import exit
-
-load_dotenv()
-client = OpenAI()
+from os.path import exists
 
 logging.basicConfig(filename='retry.log', level=logging.ERROR)
 logging.getLogger('backoff').setLevel(logging.ERROR)
 open('retry.log', 'w').close()
 
-
 def init(count, chunks, embedding_model):
-    global counter, nchunks, EMBEDDING_MODEL
+    global counter, nchunks, EMBEDDING_MODEL, client
     counter, nchunks = count, chunks
     EMBEDDING_MODEL = embedding_model
 
-@backoff.on_exception(backoff.expo, RateLimitError, max_time=30)
+    # initialize new OpenAI client for the worker
+    client = OpenAI()
+
 def _get_embedding(text):
     text = text.replace("\n", " ")
     return client.embeddings.create(input=[text], model=EMBEDDING_MODEL).data[0].embedding
@@ -90,7 +89,15 @@ def main(args):
     embedding_model = args.EMBEDDING_MODEL
     chunk_size = args.chunk_size
     process = args.process
-    
+
+    ## Load API key from .env file, later used to create OpenAI client
+    if args.env:
+        if not exists(args.env):
+            print(f"Error: Environment file '{args.env}' not found.")
+            raise FileNotFoundError(f"Environment file '{args.env}' not found.")
+        load_dotenv(args.env)
+    else:
+        load_dotenv()
 
     global counter, nchunks, current_file_chunk
     if chunk_size == None:
@@ -106,12 +113,10 @@ def main(args):
         chunk_iter = pd.read_csv(input_file, sep='\t', usecols=columns, chunksize=chunk_size)
     else:
         raise ValueError("Unsupported file type. Please provide a .csv or .tsv file.")
-    
 
     if chunk_size == None:
         chunk_iter = [chunk_iter]
 
-    
     first_chunk = True
     current_file_chunk = 1
     print("Start processing...")
@@ -184,6 +189,7 @@ if __name__ == '__main__':
     parser.add_argument('--minimize', action='store_true', help="Minimize output to only the combined and embedding columns.")
     parser.add_argument('--process', type=int, help="Number of processes to call. Default will be 1 process per vCPU.")
     parser.add_argument('--EMBEDDING_MODEL', type=str, default='text-embedding-3-small', help='OpenAI embedding model (default: text-embedding-3-small)')
+    parser.add_argument('--env', type=str, default='.env', help='Path to the .env file (default: .env)')
 
     args = parser.parse_args()
 
