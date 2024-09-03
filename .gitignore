@@ -165,4 +165,3 @@ venv/
 embedding_data/
 data/
 Reviews.db
-GPT_embedding_docker
