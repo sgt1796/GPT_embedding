@@ -4,8 +4,18 @@ import argparse
 from scipy.spatial.distance import cosine, euclidean, cityblock
 from openai import OpenAI
 from dotenv import load_dotenv
+from os.path import exists
+
 def main(args):
-    load_dotenv()
+    ## Load API key from .env file
+    if args.env:
+        if not exists(args.env):
+            print(f"Error: Environment file '{args.env}' not found.")
+            raise FileNotFoundError(f"Environment file '{args.env}' not found.")
+        load_dotenv(args.env)
+    else:
+        load_dotenv()
+
     client = OpenAI()
 
     df = pd.read_csv(args.embedding_file)
@@ -51,6 +61,7 @@ if __name__ == "__main__":
     parser.add_argument('--top', '-n', type=int, default=5, help='Number of results to return (default: 5)')
     parser.add_argument('--EMBEDDING_MODEL', '-m', type=str, default='text-embedding-3-small', help='OpenAI embedding model (default: text-embedding-3-small)')
     parser.add_argument('--embedding_file', '-f', type=str, help='Path to the embedding file')
+    parser.add_argument('--env', type=str, default='.env', help='Path to the .env file (default: .env)')
 
     args = parser.parse_args()
     main(args)

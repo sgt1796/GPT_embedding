@@ -5,19 +5,16 @@ from os.path import exists
 import faiss
 import sqlite3
 import argparse
-
-if not exists(".env"):
-    raise FileNotFoundError(".env file not found")
-load_dotenv()
-EMBEDDING_MODEL = "text-embedding-3-small"
-client = OpenAI()
+from os.path import exists
 
 ## This version of faiss search requires a sqlite3.Connection object AND an IVFPQ index object
 def faiss_search(
     query: str,
     con: sqlite3.Connection,
     index: faiss.Index,
-    top_n: int = 5
+    client: OpenAI,
+    top_n: int = 5,
+    EMBEDDING_MODEL: str = "text-embedding-3-small"
 ) -> tuple[list[str], list[float]]:
     """Returns a list of strings and relatednesses, sorted from most related to least."""
     cur = con.cursor()
@@ -83,6 +80,17 @@ def print_result(strings, relatednesses, str_to_search=None, verbose=False):
 
 
 def main(args):
+    ## Load API key from .env file
+    if args.env:
+        if not exists(args.env):
+            print(f"Error: Environment file '{args.env}' not found.")
+            raise FileNotFoundError(f"Environment file '{args.env}' not found.")
+        load_dotenv(args.env)
+    else:
+        load_dotenv()
+
+    client = OpenAI()
+
     db = args.db
     if not exists(db):
         raise FileNotFoundError("dababase not found")
@@ -92,7 +100,7 @@ def main(args):
 
     str_to_search = args.query
 
-    strings, relatednesses = faiss_search(str_to_search, con, index, top_n=args.top)
+    strings, relatednesses = faiss_search(str_to_search, con, index, client, top_n=args.top, EMBEDDING_MODEL=args.EMBEDDING_MODEL)
     con.close()
     print_result(strings, relatednesses, str_to_search, verbose=args.verbose)
 
@@ -104,6 +112,9 @@ if __name__ == "__main__":
     parser.add_argument('--index', '-x', type=str, help='Index file path')
     parser.add_argument('--top', '-n', type=int, default=5, help='Number of results to return (default: 5)')
     parser.add_argument('--verbose', '-v', action='store_true', help='Print verbose output')
+    parser.add_argument('--EMBEDDING_MODEL', type=str, default='text-embedding-3-small', help='OpenAI embedding model (default: text-embedding-3-small)')
+    parser.add_argument('--env', type=str, default='.env', help='Path to the .env file (default: .env)')
+
     args = parser.parse_args()
 
     main(args)
