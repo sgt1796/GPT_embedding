@@ -45,7 +45,7 @@ options:
 ```
 An example to run on small sample:
 ```
-python GPT_embedding.py -i Reviews_1k.csv -o test_1k.csv --out_format csv -c Summary Text --chunk_size 50
+python GPT_embedding.py -i data/Reviews_1k.csv -o test_embedding_1k.csv --out_format csv -c Summary Text --chunk_size 500
 ```
 
 
