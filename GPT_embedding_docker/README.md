@@ -1,6 +1,6 @@
 # GPT embedding docker version 
 
-This docker image contains codes needed for embedding and searching using Openai embedding model. Main scripts are the following:
+This docker image (`docker.io/sgt1796/embedding-dev`) contains codes needed for embedding and searching using Openai embedding model. Main scripts are the following:
  - `GPT_embedding.py`: CLI tool that retrieves embedding from GPT embedding API with multiprocessing.
  - `build_FAISS_index.py`: builds FAISS index on the embedding vectors, uses IVFPQ and [reservior sampling](https://gist.github.com/mdouze/92c5bafcf2b91356cf5e799e3889a0e9).
  - `build_SQLite.py`: builds text data into SQLite database.
@@ -85,9 +85,10 @@ You can test with sample data within the `testing_data` folder. It has a structu
 ```
 All commands assume you are at working directory (/embedding/), and `.env` is present at /embedding/DATA/.env
 
-You can remove the `--env` argument if you mounted only `.env` to the folder
 
 ### Generate embedding from text files (1k sample)
+
+You can remove the `--env` argument if you mounted only `.env` to the /embedding folder
 
 ```
 # generate embedding
@@ -109,14 +110,16 @@ The above command should generate test embedding data `test_embedding.csv` in th
 python similarity_search_5k.py \
 -q "What flavor of chocolate do people like the best?" \
 --top 5 \
--f test_embedding.csv
+-f test_embedding.csv \
+--env DATA/.env
 
 # Test correctness using sample embedding file
 # This should yield (almost) same result
 python similarity_search_5k.py \
 -q "What flavor of chocolate do people like the best?" \
 --top 5 \
--f testing_data/embeddings_1k.csv
+-f testing_data/embeddings_1k.csv \
+--env DATA/.env
 ```
 
 ### search with database and IVFPQ index
@@ -127,6 +130,7 @@ python faiss_search_CLI.py \
 --db testing_data/db/Reviews.db \
 --index testing_data/index/IVFPQ_index.bin  \
 --top 5 \
+--env DATA/.env \
 -v
 ```
 
