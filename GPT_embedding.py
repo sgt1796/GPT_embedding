@@ -24,6 +24,7 @@ def init(count, chunks, embedding_model):
     # initialize new OpenAI client for the worker
     client = OpenAI()
 
+@backoff.on_exception(backoff.expo, RateLimitError, max_time=30)
 def _get_embedding(text):
     text = text.replace("\n", " ")
     return client.embeddings.create(input=[text], model=EMBEDDING_MODEL).data[0].embedding

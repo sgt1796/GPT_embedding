@@ -1,0 +1,5 @@
+pip install transformers==4.37.2
+pip install flash-attn>=2.3.5
+pip install pytorch
+pip install sentencepiece
+pip install protobuf
