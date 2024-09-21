@@ -43,17 +43,20 @@ def main(args):
     str_to_search = args.query
 
     strings, relatednesses = find_kNN(str_to_search, df, top_n=args.top)
-    print('='*(len(str_to_search)+13))
-    print(f"|| QUERY: {str_to_search} ||")
-    print('='*(len(str_to_search)+13))
-    print("\nSearch result:")
-    print('-'*50)
-    for i, (string, relatedness) in enumerate(zip(strings, relatednesses), start=1):
-        print(f"Result {i}:")
-        print(f"Relatedness: {relatedness:.3f}")
-        print(f"\nContent: {string}")
-        print('-'*50)
 
+    def print_results(strings, relatednesses):
+        print('='*(len(str_to_search)+13))
+        print(f"|| QUERY: {str_to_search} ||")
+        print('='*(len(str_to_search)+13))
+        print("\nSearch result:")
+        print('-'*50)
+        for i, (string, relatedness) in enumerate(zip(strings, relatednesses), start=1):
+            print(f"Result {i}:")
+            print(f"Relatedness: {relatedness:.3f}")
+            print(f"\nContent: {string}")
+            print('-'*50)
+
+    print_results(strings, relatednesses)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

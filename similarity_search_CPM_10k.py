@@ -54,16 +54,19 @@ def main(args):
 
 
     strings, relatednesses = find_kNN(query, df, top_n=args.top)
-    print('='*(len(query)+13))
-    print(f"|| QUERY: {query} ||")
-    print('='*(len(query)+13))
-    print("\nSearch result:")
-    print('-'*50)
-    for i, (string, relatedness) in enumerate(zip(strings, relatednesses), start=1):
-        print(f"Result {i}:")
-        print(f"Relatedness: {relatedness}")
-        print(f"\nContent: {string}")
+    def print_results(strings, relatednesses):
+        print('='*(len(query)+13))
+        print(f"|| QUERY: {query} ||")
+        print('='*(len(query)+13))
+        print("\nSearch result:")
         print('-'*50)
+        for i, (string, relatedness) in enumerate(zip(strings, relatednesses), start=1):
+            print(f"Result {i}:")
+            print(f"Relatedness: {relatedness}")
+            print(f"\nContent: {string}")
+            print('-'*50)
+
+    print_results(strings, relatednesses)
 
 
 
@@ -76,3 +79,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     main(args)
+
+# Example usage:
+# python similarity_search_CPM_10k.py -q '为什么有一年四季？' -f stories/stories_cn_wpwx_ebd.csv
