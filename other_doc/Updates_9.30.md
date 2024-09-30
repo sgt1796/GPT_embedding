@@ -27,3 +27,6 @@
 6. **Client-Server Setup with Jina**:
    - Tested building a client-server API architecture using Jina.
    - Might be helpful in production?
+7. **New RAG structure**
+   
+   ![RAG Structure](FAISS_embedding_search.png)
