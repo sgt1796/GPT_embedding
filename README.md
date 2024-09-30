@@ -8,7 +8,7 @@ This repo contains codes needed for embedding and searching using Openai embeddi
 
 The general workflow looks like this
 
-![GPT embedding workflow](FAISS_embedding_search.png)
+![GPT embedding workflow](other_doc/FAISS_embedding_search_old.png)
 
 
 ## Requirement
