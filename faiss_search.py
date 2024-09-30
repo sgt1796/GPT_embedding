@@ -44,7 +44,11 @@ def faiss_search(
     for row, err in zip(I[0], D[0]):
         ## retrieve corresponding row from db
         input = eval(f"({row},)")
-        content = cur.execute('SELECT content FROM reviews WHERE row_number=?', input).fetchone()[0]
+        result = cur.execute('SELECT content FROM reviews WHERE row_number=?', input).fetchone()
+        if result:
+            content = result[0]
+        else:
+            content = "Content not found."
         related_text.append((content, err))
 
     # might not needed

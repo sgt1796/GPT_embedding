@@ -1,6 +1,8 @@
 import pandas as pd
+from dotenv import load_dotenv
 from Embedder import Embedder
 
+load_dotenv()
 out_format = "csv"
 columns = ["name", "category", "content"]
 input_file = "stories/stories_cn_oesz.csv"
