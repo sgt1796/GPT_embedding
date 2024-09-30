@@ -1,9 +1,7 @@
 ## requires: pytorch, transformer, flash-attn
-from transformers import AutoModel, AutoTokenizer
-import torch
-import torch.nn.functional as F
 import pandas as pd
 import argparse
+from Embedder import Embedder
 
 def main(args):
     out_format = args.out_format
@@ -13,32 +11,11 @@ def main(args):
     EMBEDDING_MODEL = args.EMBEDDING_MODEL
     minimize = args.minimize
 
-    # Rest of the code goes here
-    tokenizer = AutoTokenizer.from_pretrained(EMBEDDING_MODEL)
-    model = AutoModel.from_pretrained(EMBEDDING_MODEL, 
-                                    trust_remote_code=True, 
-                                    attn_implementation="flash_attention_2", 
-                                    torch_dtype=torch.float16).to("cuda")
-    model.eval()
-
-    def weighted_mean_pooling(hidden, attention_mask):
-        attention_mask_ = attention_mask * attention_mask.cumsum(dim=1)
-        s = torch.sum(hidden * attention_mask_.unsqueeze(-1).float(), dim=1)
-        d = attention_mask_.sum(dim=1, keepdim=True).float()
-        reps = s / d
-        return reps
-
-    @torch.no_grad()
-    def encode(input_texts):
-        batch_dict = tokenizer(input_texts, max_length=512, padding=True, truncation=True, return_tensors='pt', return_attention_mask=True).to("cuda")
-        
-        outputs = model(**batch_dict)
-        attention_mask = batch_dict["attention_mask"]
-        hidden = outputs.last_hidden_state
-
-        reps = weighted_mean_pooling(hidden, attention_mask)   
-        embeddings = F.normalize(reps, p=2, dim=1).detach().cpu().numpy()
-        return embeddings
+    embedder = Embedder(model_name=EMBEDDING_MODEL, 
+                        to_cuda=True,
+                        use_api=None,
+                        attn_implementation='flash_attention_2'
+                        )
 
 
     df = pd.read_csv(input_file)
@@ -52,7 +29,9 @@ def main(args):
     for i in range(df.shape[0]):
         if i % 200 == 0:
             print(f"Processing row {i}...")
-        embeddings.extend(encode(df.combined[i]))
+
+        ebd = embedder.get_embedding([df.combined[i]])
+        embeddings.extend(ebd)
     print(f"embedding done! {len(embeddings)} embeddings generated.")
         
     for i, embedding in enumerate(embeddings):
@@ -75,3 +54,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     main(args)
+
+# example usage
+# python MiniCPM_embedding.py -i stories/stories_cn_oesz.csv -o stories/stories_cn_oesz_ebd.csv -c name category content
+# (Extremely slow) python MiniCPM_embedding.py -i stories/stories_cn_oesz.csv -o stories/stories_cn_oesz_ebd_llama.csv -c name category content --EMBEDDING_MODEL shenzhi-wang/Llama3.1-8B-Chinese-Chat
