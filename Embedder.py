@@ -9,6 +9,8 @@ from backoff import on_exception, expo
 
 from transformers import AutoTokenizer, AutoModel
 
+MAX_TOKENS = 8194
+
 class Embedder:
     def __init__(self, model_name=None, use_api=None, to_cuda=False, attn_implementation=None):
         """
@@ -124,6 +126,16 @@ class Embedder:
             raise HTTPRequests.exceptions.RequestException(
                 f"Rate limit exceeded: {response.status_code}, {response.text}"
             )
+        elif response.status_code == 400:
+            ebd = []
+            for text in texts:
+                chunks = self._Jina_segmenter(text, max_token=MAX_TOKENS)
+                token_counts = [len(chunk) for chunk in chunks]
+                chunk_embedding = self.get_embedding(chunks)
+                weighted_avg = np.average(chunk_embedding, weights=token_counts, axis=0)
+                ebd.append(weighted_avg)
+            return np.array(ebd, type="f")
+            
         else:
             print(f"Error: {response.status_code}, {response.text}")
             raise Exception(f"Failed to get embedding from Jina API: {response.status_code}, {response.text}")
@@ -181,3 +193,19 @@ class Embedder:
             return reps
         
         return _encode(self, texts)
+    
+    def _Jina_segmenter(self, text: str, max_token: int) -> list[str]:
+        """Segments text into chunks using Jina API. (free but need API key)"""
+        url = 'https://segment.jina.ai/'
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {getenv("JINAAI_API_KEY")}'
+        }
+        data = {
+            "content": text,
+            "return_tokens": True,
+            "return_chunks": True,
+            "max_chunk_length": max_token
+        }
+        response = HTTPRequests.post(url, headers=headers, json=data)
+        return response.json().get('chunks', [])

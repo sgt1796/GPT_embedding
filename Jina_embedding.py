@@ -24,7 +24,11 @@ for i in range(df.shape[0]):
     if i % 200 == 0:
         print(f"Processing row {i}...")
 
-    ebd = embedder.get_embedding([df.combined[i]])
+    try:
+        ebd = embedder.get_embedding([df.combined[i]])
+    except Exception as e:
+        print(f"Exception at row {i}: {e}")
+        ebd = [0] * 1024
     embeddings.extend(ebd)
 print(f"embedding done! {len(embeddings)} embeddings generated.")
         
