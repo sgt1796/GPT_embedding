@@ -134,7 +134,7 @@ class Embedder:
                 chunk_embedding = self.get_embedding(chunks)
                 weighted_avg = np.average(chunk_embedding, weights=token_counts, axis=0)
                 ebd.append(weighted_avg)
-            return np.array(ebd, type="f")
+            return np.array(ebd, dtype="f")
             
         else:
             print(f"Error: {response.status_code}, {response.text}")

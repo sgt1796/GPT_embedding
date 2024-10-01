@@ -1,6 +1,7 @@
 import pandas as pd
 from dotenv import load_dotenv
 from Embedder import Embedder
+from numpy import zeros
 
 load_dotenv()
 out_format = "csv"
@@ -28,7 +29,7 @@ for i in range(df.shape[0]):
         ebd = embedder.get_embedding([df.combined[i]])
     except Exception as e:
         print(f"Exception at row {i}: {e}")
-        ebd = [0] * 1024
+        ebd = zeros(1024, dtype="f")
     embeddings.extend(ebd)
 print(f"embedding done! {len(embeddings)} embeddings generated.")
         
