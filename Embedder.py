@@ -3,7 +3,6 @@ import numpy as np
 import openai
 import requests as HTTPRequests ## some packages already have "requests"
 from os import getenv
-import torch.nn.functional as F
 from backoff import on_exception, expo
 
 
@@ -50,6 +49,8 @@ class Embedder:
 
     def _initialize_local_model(self):
         import torch  # Importing PyTorch only when needed
+        import torch.nn.functional as F
+
 
         """Initializes the PyTorch model and tokenizer for local embedding generation."""
         if self.attn_implementation:

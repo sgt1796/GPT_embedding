@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 from Embedder import Embedder
 from similarity_search_10k import find_kNN
 from docarray.typing.tensor.embedding.embedding import AnyEmbedding
+import subprocess
+import re
 
 load_dotenv("../.env")
 port = 1192
@@ -40,6 +42,25 @@ class RAG_API(Executor):
             doc.contents = [string[0] for string in strings if string]
             doc.relatedness = [relatedness for relatedness in relatednesses if relatedness]
 
+        return docs
+    
+    @requests(on='/jina/search')
+    def jina_search(self, docs: DocList[TestDoc], **kwargs):
+        for doc in docs:
+            query = doc.text
+            result = subprocess.run(["python3", "faiss_search.py", 
+                                     "-q", query, 
+                                     "--db", "stories_cn_Jina.db", 
+                                     "--index", "stories_cn_Jina.index", 
+                                     "--top", "5", 
+                                     "--use_api", "jina",
+                                     "--env", ".env"], capture_output=True, text = True)
+            
+            contents = result.stdout.replace("\n", "").split(">>>>>Result")[1:]
+            relatedness = [float(content.split(">>>>>Relatedness")[1].split(": ")[1]) for content in contents]
+            doc.contents = contents
+            doc.relatedness = relatedness
+        
         return docs
 
 if __name__ == '__main__':

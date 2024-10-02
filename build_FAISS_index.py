@@ -180,3 +180,4 @@ if __name__ == "__main__":
 
 # Test command
 # python build_FAISS_index.py -i stories/stories_cn_ebd.csv -o stories_cn_ebd.index --nsubvec 96
+# python build_FAISS_index.py -i stories/stories_cn_ebd_Jina.csv -o stories_cn_Jina.index --nrow 9234 -d 1024 --nsubvec 32 --nbits 8

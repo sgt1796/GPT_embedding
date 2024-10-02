@@ -108,7 +108,8 @@ def print_result(strings, relatednesses, query, verbose=False):
         if query != None:
             print(f"\nQuery: {query}")
         for i, string in enumerate(strings, start=1):
-            print(f"\nResult {i}: {string}")
+            print(f"\n>>>>>Result {i}: {string}")
+            print(f"\n>>>>>Relatedness {i}: {relatednesses[i-1]:.3f}")
 
 def main(args):
     use_api = args.use_api
@@ -163,6 +164,7 @@ if __name__ == "__main__":
 ## Example usage:
 ## 1. OpenAI GPT: python faiss_search.py -q 'I love apples, any recommendation for apple-related products?' --db Reviews.db --index IVFPQ_index.bin -v --use_api openai
 ## 2. MiniCPM: python faiss_search.py -q '为什么熊会冬眠？' --db stories_cn_test.db --index stories_cn_ebd.index -v --model_name openbmb/MiniCPM-Embedding --to_cuda
+## 3. JinaAI API: python faiss_search.py -q '为什么熊会冬眠？' --db stories_cn_Jina.db --index stories_cn_Jina.index --top 5 -v --use_api jina --env ../.env
 
 ## current problem:
 ## 1. ads get higher relatedness scores (>1?)
