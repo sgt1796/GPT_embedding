@@ -3,50 +3,43 @@ import numpy as np
 from docarray import BaseDoc, DocList
 from dotenv import load_dotenv
 from requests import post as POST
-import os
+from Embedder import Embedder
+from similarity_search_10k import find_kNN, print_results
 
 from docarray.typing.tensor.embedding.embedding import AnyEmbedding
 
 load_dotenv("../.env")
+port = 1192
 
 class TestDoc(BaseDoc):
     text: str = None
     embedding: AnyEmbedding #= np.zeros((1000, ))
 
-class embedding(Executor):
-    @requests(on='/create')
-    def JINA(self, docs: DocList[TestDoc], **kwargs) -> DocList[TestDoc]:
-        url = 'https://api.jina.ai/v1/embeddings'
+class RAG_API(Executor):
+    @requests(on='/jina/embedding')
+    def jina_embedding(self, docs: DocList[TestDoc], **kwargs) -> DocList[TestDoc]:
+        embedder = Embedder(use_api = "jina")
+        input_text = [doc.text for doc in docs if doc.text]
+        embeddings = embedder.get_embedding(input_text)
+        for doc, embedding_data in zip(docs, embeddings):
+                doc.embedding = np.array(embedding_data, dtype="f")
 
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {os.getenv("JINAAI_API_KEY")}'
-        }
-
-        input_texts = [doc.text for doc in docs if doc.text]
-        data = {
-            "model": "jina-embeddings-v3",
-            "task": "text-matching",
-            "dimensions": 1024,
-            "late_chunking": False,
-            "embedding_type": "float",
-            "input": input_texts
-        }
-        response = POST(url, headers=headers, json=data)
-        # Process the response
-        if response.status_code == 200:
-            # Extract embeddings from the response and convert them to NumPy arrays
-            embeddings = response.json().get('data', [])
-            for doc, embedding_data in zip(docs, embeddings):
-                doc.embedding = np.array(embedding_data['embedding'], dtype="f")  # Assign as a NumPy array
-        else:
-            # Handle any errors appropriately (logging, raising errors, etc.)
-            print(f"Error: {response.status_code}, {response.text}")
+        return docs
+    
+    ## This calculates the cosine similarity between the query and all the embeddings, slow
+    @requests(on='/jina/_search')
+    def jina__search(self, docs, **kwargs):
+        embedder = Embedder(use_api = "jina")
+        for doc in docs:
+            query = doc.text
+            df = "stories/stories_cn_oesz_ebd_Jina.csv"
+            strings, relatednesses = find_kNN(query, df, embedder, top_n=5, return_content=True)
+            doc.strings = strings
+            doc.relatednesses = relatednesses
 
         return docs
 
-
-dep = Deployment(port=1129, name='embedding_executor', uses=embedding, host='localhost')
+dep = Deployment(port=port, name='embedding_executor', uses=RAG_API, host='localhost')
 
 with dep:
     dep.block()
