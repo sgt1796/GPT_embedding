@@ -13,10 +13,9 @@ def find_kNN(
 ) -> tuple[list[str], list[float]]:
     
     # if df is path, read the file
-    if df is str:
-        if not exists(df):
-            raise FileNotFoundError(f"File not found: {df}")
+    if isinstance(df, str):
         df = pd.read_csv(df)
+        df['embedding'] = df.embedding.apply(eval).apply(np.array, dtype="f")
 
     query_embedding = embedder.get_embedding([query])[0]
     df['similarity'] = df.embedding.apply(lambda x: relatedness_fn(query_embedding, x))
