@@ -1,10 +1,11 @@
 # GPT embedding
 
-This repo contains codes needed for embedding and searching using Openai embedding model. Main scripts are the following:
- - `GPT_embedding.py`: CLI tool that retrieves embedding from GPT embedding API with multiprocessing.
+This repo contains codes needed for embedding and searching using various embedding models (Openai, Jina, pytorch model). Main scripts are the following:
+ - `Embedder.py`: The Embedder class is used to handle clients for different models.
+ - `XXX_embedding.py`: CLI tool that retrieves embedding from GPT embedding API with multiprocessing. XXX can be "GPT", "Jina" or "MiniCPM".
  - `build_FAISS_index.py`: builds FAISS index on the embedding vectors, uses IVFPQ and [reservior sampling](https://gist.github.com/mdouze/92c5bafcf2b91356cf5e799e3889a0e9).
  - `build_SQLite.py`: builds text data into SQLite database.
- - `faiss_search.py`: (currently `faiss_search_CLI.py`) CLI tool that search a user query within the builded embedding data.
+ - `faiss_search.py`: CLI tool that search a user query within the builded embedding data.
 
 The general workflow looks like this
 
@@ -13,10 +14,13 @@ The general workflow looks like this
 
 ## Requirement
 
-Openai API key is needed. Save your API key in `.env` in the same folder with the script, it should look like
+For GPT and Jina related service, API key is needed. Save your API key in `.env` in the same folder with the script, it should look like
 ```
+# you can have keys to different API
 OPENAI_API_KEY=<your openai key>
+JINAAI_API_KEY=<your jinaai key>
 ```
+
 The full testing data set is [Amazon Fine Food Review](https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews).
 
 ## GPT Embedding Usage
@@ -52,21 +56,47 @@ python GPT_embedding.py -i data/Reviews_1k.csv -o test_embedding_1k.csv --out_fo
 ## Search with user query
 
 ### File with <10k rows
-To search for similarity in small embedding data (<10k rows) use `similarity_search_5k.py`, FAISS index and SQL db is not needed for this method. In script change the variable to your query
+To search for similarity in small embedding data (<10k rows) use `similarity_search_10k.py`, FAISS index and SQL db is not needed for this method. If .env is not in the same folder, specify the path with `--env`. Currently supports only API embedding methods
 ```
-# Change this to your string
-str_to_search = "what pizza flavor do people like the most?"
+# use GPT embedding method
+python3 similarity_search_10k.py -q 'I love eating ice cream!' -f "embedding_1k.csv" -n 3 --api openai 
 ```
 
-This method will go through every line and finds the most similar vectors to retreive.
+This method will go through every line and finds the top-n similar vectors to retreive.
 
 ### Large files
-For larger data where brute force search is not possible, `build_FAISS_index.py` can be used to build FAISS index using IVFPQ method. This will significantly reduce the size to query on as well as the query time.
+For larger data where brute force search is not possible, `build_FAISS_index.py` can be used to build FAISS index using IVFPQ method. This will significantly reduce the size to query on as well as the query time. The text data should be stored with `build_SQLite.py` to reduce the storage size and search speed.
 
 ### `build_FAISS_index.py`
 
 #### Choosing Parameters for Building a FAISS Index
 When building a FAISS index, selecting the correct parameters is crucial for balancing accuracy and performance. Below are some guidelines for choosing the parameters used in the build_FAISS_index.py script:
+
+```
+usage: build_FAISS_index.py [-h] [--chunk_size CHUNK_SIZE] [--file_path FILE_PATH] [--out_path OUT_PATH]
+                            [--nrow NROW] [--nlist NLIST] [--dimension DIMENSION] [--nsubvec NSUBVEC] [--nbits NBITS]
+                            [--resvoir_sample RESVOIR_SAMPLE]
+
+options:
+  -h, --help            show this help message and exit
+  --chunk_size CHUNK_SIZE
+                        Size of each chunk. If the data is too large to cluster all at once, use this and
+                        resvoir_sample to cluster the data in chunks
+  --file_path FILE_PATH, -i FILE_PATH
+                        Path to the data file
+  --out_path OUT_PATH, -o OUT_PATH
+                        Path to the output file
+  --nrow NROW           Number of rows in the data file, needed only if the data is loaded in chunks
+  --nlist NLIST         Number of Voronoi cells to divide. lower this increases accuracy, decreases speed. Default is
+                        sqrt(nrow)
+  --dimension DIMENSION, -d DIMENSION
+                        Dimension of the embeddings, will use the dimension of the first embedding if not provided
+  --nsubvec NSUBVEC     Number of subvectors divide the embeddings into, dimension must be divisible by nsubvec
+  --nbits NBITS         Number of bits for clustering, default is 8
+  --resvoir_sample RESVOIR_SAMPLE
+                        Perform Reservoir Sampling to draw given number of samples to cluster. By default is no
+                        sampling. Must use sampling if the chunk_size is provided)
+```
 
 - `dimension`: The number of elements in a single vector. 1536 for `text-embedding-3-small` and 3072 for `text-embedding-3-large`. This number can be specified when calling embedding models.
 - `chunk_size`: This parameter determines the number of rows read from the CSV file at a time. A larger chunk size can speed up the reading process but requires more memory. Adjust based on your system's memory capacity.
