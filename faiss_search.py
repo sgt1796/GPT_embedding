@@ -32,9 +32,9 @@ def faiss_search(
 
     #### This doesn't work:
     #### row = 1000
-    #### cur.execute("SELECT content FROM reviews WHERE row_number=?", (row,)).fetchall()
+    #### cur.execute("SELECT content FROM sql_table WHERE row_number=?", (row,)).fetchall()
     #### But this works:
-    #### cur.execute("SELECT content FROM reviews WHERE row_number=?", (1000,)).fetchall()
+    #### cur.execute("SELECT content FROM sql_table WHERE row_number=?", (1000,)).fetchall()
 
     ### probably b/c how python treat one-element tuple w/ variable differently...
 
@@ -44,7 +44,7 @@ def faiss_search(
     for row, err in zip(I[0], D[0]):
         ## retrieve corresponding row from db
         input = eval(f"({row},)")
-        result = cur.execute('SELECT content FROM reviews WHERE row_number=?', input).fetchone()
+        result = cur.execute('SELECT content FROM sql_table WHERE row_number=?', input).fetchone()
         if result:
             content = result[0]
         else:

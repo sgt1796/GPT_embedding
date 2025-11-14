@@ -78,6 +78,7 @@ class Embedder:
 
         if not isinstance(texts, list):
             raise ValueError("Input must be a list of strings.")
+        
 
         if self.use_api:
             if self.use_api == 'jina':
@@ -95,7 +96,9 @@ class Embedder:
                 raise ValueError(f"API type '{self.use_api}' is not supported.")
         else:
             return self._get_torch_embedding(texts)
-            
+    
+    ## Below are model-specific functions
+
     @on_exception(expo, HTTPRequests.exceptions.RequestException, max_time=30)
     def _get_jina_embedding(self, texts: list) -> np.ndarray:
         """Fetches embeddings from the Jina API. Requires Jina API key in .env file."""
@@ -115,7 +118,7 @@ class Embedder:
             "embedding_type": "float",
             "input": input_texts
         }
-        response = HTTPRequests.post(url, headers=headers, json=data)
+        response = HTTPRequests.post(url, headers=headers, json=data)    
 
         # Process the response
         if response.status_code == 200:
@@ -127,6 +130,8 @@ class Embedder:
             raise HTTPRequests.exceptions.RequestException(
                 f"Rate limit exceeded: {response.status_code}, {response.text}"
             )
+        
+        ## When the input is too long, we need to segment the text
         elif response.status_code == 400:
             ebd = []
             for text in texts:
@@ -140,9 +145,20 @@ class Embedder:
         else:
             print(f"Error: {response.status_code}, {response.text}")
             raise Exception(f"Failed to get embedding from Jina API: {response.status_code}, {response.text}")
-            
+    
+    @on_exception(expo, HTTPRequests.exceptions.RequestException, max_time=30)
     def _get_openai_embedding(self, texts: list) -> np.ndarray:
         """Fetches embeddings from the OpenAI API and returns them as a NumPy array. Requires OpenAI API key in .env file."""
+        # openai embedding API has a limit on single batch size of 2048 texts, so we may need to batch here
+        batch_size = 2048
+        if len(texts) > batch_size:
+            all_embeddings = []
+            for i in range(0, len(texts), batch_size):
+                batch_texts = texts[i:i+batch_size]
+                batch_embeddings = self._get_openai_embedding(batch_texts)
+                all_embeddings.append(batch_embeddings)
+            return np.vstack(all_embeddings)
+        
         texts = [text.replace("\n", " ") for text in texts]  # Clean text input
         response = self.client.embeddings.create(input=texts, model=self.model_name)
 
@@ -195,6 +211,7 @@ class Embedder:
         
         return _encode(self, texts)
     
+    @on_exception(expo, HTTPRequests.exceptions.RequestException, max_time=30)
     def _Jina_segmenter(self, text: str, max_token: int) -> list[str]:
         """Segments text into chunks using Jina API. (free but need API key)"""
         url = 'https://segment.jina.ai/'

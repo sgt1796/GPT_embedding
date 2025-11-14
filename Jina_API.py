@@ -8,7 +8,6 @@ from Embedder import Embedder
 from similarity_search_10k import find_kNN
 from docarray.typing.tensor.embedding.embedding import AnyEmbedding
 import subprocess
-import re
 
 load_dotenv("../.env")
 port = 1192
@@ -41,7 +40,6 @@ class RAG_API(Executor):
             strings, relatednesses = find_kNN(query, df, embedder, top_n=5)
             doc.contents = [string[0] for string in strings if string]
             doc.relatedness = [relatedness for relatedness in relatednesses if relatedness]
-
         return docs
     
     @requests(on='/jina/search')
